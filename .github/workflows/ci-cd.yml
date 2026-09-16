@@ -1,11 +1,11 @@
 name: PatchTrip CI/CD Pipeline
 
-# Tentukan kapan pipeline ini otomatis berjalan di semua branch utama
+# Pemicu otomatis di semua branch utama dan branch fitur Anda
 on:
   push:
-    branches: [ development, staging, deployment ]
+    branches: [ development, staging, deployment, feature/patchTrip ]
   pull_request:
-    branches: [ development, staging, deployment ]
+    branches: [ development, staging, deployment, feature/patchTrip ]
 
 jobs:
   # Job 1: Menjalankan Unit Test Backend (FastAPI & Pytest)
@@ -29,10 +29,11 @@ jobs:
 
       - name: Jalankan Unit Test dengan Pytest
         env:
-         DATABASE_URL: 'sqlite:///:memory:'
+          DATABASE_URL: 'sqlite:///:memory:'
         run: |
-                cd backend
-                pytest
+          cd backend
+          pytest
+
   # Job 2: Membangun (Build) Frontend Next.js
   frontend-build:
     runs-on: ubuntu-latest
