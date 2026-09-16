@@ -1,0 +1,22 @@
+[
+    {
+      "itinerary_id": "trip_real_001",
+      "city": "Yogyakarta",
+      "duration_days": 2,
+      "budget_category": "Menengah",
+      "schedule": [
+        {
+          "day": 1,
+          "activities": [
+            {"time": "09:00", "poi_id": 1, "activity_name": "Mengunjungi Candi Prambanan"}
+          ]
+        },
+        {
+          "day": 2,
+          "activities": [
+            {"time": "10:00", "poi_id": 15, "activity_name": "Belanja oleh-oleh di Malioboro"}
+          ]
+        }
+      ]
+    }
+  ]

@@ -1,0 +1,25 @@
+# --- PYTHON / BACKEND ---
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.env
+backend/data/vector_store/
+*.log
+
+# --- NEXT.JS / FRONTEND ---
+.next/
+out/
+dist/
+build/
+node_modules/
+.DS_Store
+
+# --- ENVIRONMENT & IDE ---
+.env.local
+.env*.local
+.vscode/
+.idea/
+*.swp
+*.swo

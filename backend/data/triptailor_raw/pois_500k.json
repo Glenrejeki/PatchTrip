@@ -1,0 +1,20 @@
+[
+    {
+      "poi_id": 1,
+      "name": "Candi Prambanan",
+      "category": "Sejarah & Budaya",
+      "description": "Candi Hindu terbesar di Indonesia yang dibangun pada abad ke-9 masehi dan kaya akan nilai sejarah.",
+      "location": "Yogyakarta",
+      "latitude": -7.7520,
+      "longitude": 110.4914
+    },
+    {
+      "poi_id": 2,
+      "name": "Pantai Kuta",
+      "category": "Wisata Alam & Pantai",
+      "description": "Destinasi pantai tropis yang sangat populer di Bali untuk menikmati pemandangan matahari terbenam.",
+      "location": "Bali",
+      "latitude": -8.7184,
+      "longitude": 115.1685
+    }
+  ]

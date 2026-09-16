@@ -1,0 +1,25 @@
+[
+    {
+      "user_id": "user_101",
+      "total_trips": 2,
+      "historical_trips": [
+        {
+          "trip_id": "past_trip_1",
+          "trip_name": "Liburan Musim Panas di Bali",
+          "date": "2024-07-15",
+          "items": [
+            {"name": "Pantai Kuta", "category": "Pantai", "note": "Sangat menikmati suasana pantai."},
+            {"name": "Pantai Pandawa", "category": "Pantai", "note": "Suka dengan pemandangan tebingnya."}
+          ]
+        },
+        {
+          "trip_id": "past_trip_2",
+          "trip_name": "Eksplorasi Budaya Jawa",
+          "date": "2025-01-10",
+          "items": [
+            {"name": "Keraton Yogyakarta", "category": "Budaya", "note": "Tertarik dengan sejarah kerajaan."}
+          ]
+        }
+      ]
+    }
+  ]
