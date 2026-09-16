@@ -1,0 +1,94 @@
+name: PatchTrip CI/CD Pipeline
+
+# Tentukan kapan pipeline ini otomatis berjalan di semua branch utama
+on:
+  push:
+    branches: [ development, staging, deployment ]
+  pull_request:
+    branches: [ development, staging, deployment ]
+
+jobs:
+  # Job 1: Menjalankan Unit Test Backend (FastAPI & Pytest)
+  backend-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Kode
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install Dependencies Backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+
+      - name: Jalankan Unit Test dengan Pytest
+        env:
+         DATABASE_URL: 'sqlite:///:memory:'
+        run: |
+                cd backend
+                pytest
+  # Job 2: Membangun (Build) Frontend Next.js
+  frontend-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Kode
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Dependencies Frontend
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Build Next.js
+        run: |
+          cd frontend
+          npm run build
+
+  # Job 3: Validasi Docker Compose (Berjalan di semua branch setelah test & build sukses)
+  docker-validation:
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-build]
+    
+    steps:
+      - name: Checkout Kode
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validasi Konfigurasi Docker Compose
+        run: |
+          docker compose config
+        shell: bash
+
+  # Job 4: Proses Deployment Otomatis (Hanya berjalan khusus untuk branch 'deployment')
+  production-deploy:
+    runs-on: ubuntu-latest
+    needs: [docker-validation]
+    if: github.ref == 'refs/heads/deployment' && github.event_name == 'push'
+    
+    steps:
+      - name: Checkout Kode
+        uses: actions/checkout@v4
+
+      - name: Simulasi / Eksekusi Proses Deployment ke Server Produksi
+        run: |
+          echo "=== MEMULAI DEPLOYMENT KE SERVER PRODUKSI ==="
+          echo "Branch target: deployment"
+          echo "Menjalankan perintah deploy atau integrasi ke server cloud (AWS/VPS/Docker Swarm)..."
+          # Tambahkan skrip SSH, rsync, atau Docker Hub push Anda di sini nanti
+          echo "Deployment berhasil diselesaikan!"
