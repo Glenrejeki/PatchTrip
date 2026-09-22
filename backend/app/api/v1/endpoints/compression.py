@@ -1,12 +1,17 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Dict, Any
 from app.services.compression_service import CompressionService
 
 router = APIRouter()
 
+# Schema Pydantic untuk validasi item riwayat perjalanan
+class TripItem(BaseModel):
+    item_name: str
+    category: str
+    description: str
+
 # Schema Pydantic untuk validasi input data riwayat perjalanan pengguna
-class TripItem(item_name: str, category: str, description: str) # contoh struktur item
 class UserHistoryRequest(BaseModel):
     user_id: str
     raw_trips: List[Dict[str, Any]]  # Berisi daftar riwayat perjalanan mentah
@@ -15,7 +20,7 @@ class UserHistoryRequest(BaseModel):
 async def compress_user_history(payload: UserHistoryRequest):
     """
     Endpoint untuk memproses riwayat perjalanan panjang pengguna 
-    menjadi User Preference Profile melalui 3 level kompresi (Item, Trip, Profile).
+    menjadi User Preference Profile melalui level kompresi hirarkis.
     """
     try:
         # Inisialisasi service compression

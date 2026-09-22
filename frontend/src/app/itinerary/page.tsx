@@ -1,75 +1,150 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import HistoryViewer from "./HistoryViewer";
+import "../globals.css";
+
+interface Activity {
+  time: string;
+  poi_name: string;
+  category: string;
+  description: string;
+  similarity_score?: number;
+}
+
+interface DaySchedule {
+  day_number: number;
+  theme: string;
+  activities: Activity[];
+}
+
+interface ItineraryData {
+  title: string;
+  destination: string;
+  duration_days: number;
+  budget_level: string;
+  generated_at: string;
+  user_profile_summary: string;
+  total_trips_analyzed?: number;
+  days: DaySchedule[];
+}
 
 export default function ItineraryResultPage() {
-  // Simulasi data itinerary hasil generate dari backend RAG & Qwen3-8B
-  const [itineraryData, setItineraryData] = useState({
-    title: "Eksplorasi Budaya & Alam Yogyakarta",
-    destination: "Yogyakarta, Indonesia",
-    duration_days: 2,
-    budget_level: "Menengah",
-    generated_at: "2026-06-06",
-    user_profile_summary: "Pecinta wisata alam pantai, candi bersejarah, dan kuliner tradisional.",
-    days: [
-      {
-        day_number: 1,
-        theme: "Jejak Sejarah & Budaya Klasik",
-        activities: [
-          {
-            time: "08:30 - 11:30",
-            poi_name: "Candi Prambanan",
-            category: "Sejarah & Budaya",
-            description: "Menjelajahi kompleks candi Hindu terbesar yang kaya akan relief bersejarah.",
-            similarity_score: 0.8921
-          },
-          {
-            time: "12:30 - 14:00",
-            poi_name: "Sentra Kuliner Gudeg Yu Djum",
-            category: "Kuliner Lokal",
-            description: "Menikmati makan siang khas tradisional Yogyakarta.",
-            similarity_score: 0.8450
-          },
-          {
-            time: "15:30 - 18:00",
-            poi_name: "Keraton Yogyakarta",
-            category: "Budaya & Edukasi",
-            description: "Mengunjungi istana resmi Kesultanan Ngayogyakarta Hadiningrat.",
-            similarity_score: 0.8210
-          }
-        ]
-      },
-      {
-        day_number: 2,
-        theme: "Eksplorasi Keindahan Pesisir Selatan",
-        activities: [
-          {
-            time: "08:00 - 11:00",
-            poi_name: "Pantai Parangtritis",
-            category: "Wisata Alam & Pantai",
-            description: "Menikmati pemandangan laut lepas Samudra Hindia dan panorama bukit pasir.",
-            similarity_score: 0.9102
-          },
-          {
-            time: "13:00 - 15:00",
-            poi_name: "Hutan Pinus Mangunan",
-            category: "Wisata Alam",
-            description: "Menghirup udara sejuk di kawasan hutan pinus dataran tinggi.",
-            similarity_score: 0.8655
-          }
-        ]
-      }
-    ]
-  });
+  const [itineraryData, setItineraryData] = useState<ItineraryData | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [saving, setSaving] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSaveToDatabase = () => {
-    alert("Berhasil! Itinerary telah disimpan ke riwayat akun database PostgreSQL Anda.");
+  useEffect(() => {
+    async function fetchGeneratedItinerary() {
+      try {
+        setLoading(true);
+
+        const activeDestination = localStorage.getItem("target_destination") || "Yogyakarta";
+        const activeDuration = Number(localStorage.getItem("target_duration")) || 3;
+        const activeBudget = localStorage.getItem("target_budget") || "Menengah";
+        const activePreferences = localStorage.getItem("target_preferences") || "wisata alam dan sejarah";
+
+        const response = await fetch("http://127.0.0.1:8000/api/v1/generator/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_id: "user_thesis_123",
+            query: `Buatkan itinerary liburan di ${activeDestination}`,
+            destination: activeDestination,
+            duration: activeDuration,
+            budget: activeBudget,
+            preferences: activePreferences
+          }),
+        });
+
+        if (!response.ok) throw new Error(`Gagal mengambil data dari server (Status: ${response.status})`);
+
+        const data = await response.json();
+
+        if (data && data.status === "success") {
+          setItineraryData({
+            title: data.itinerary_title || `Rencana Perjalanan ${activeDestination}`,
+            destination: data.destination || activeDestination,
+            duration_days: data.duration || activeDuration,
+            budget_level: data.budget || activeBudget,
+            generated_at: new Date().toISOString().split('T')[0],
+            user_profile_summary: data.query_profile || activePreferences,
+            total_trips_analyzed: data.total_trips || 4,
+            days: data.days && data.days.length > 0 ? data.days : [
+              {
+                day_number: 1,
+                theme: "Hasil RAG & Retrieval FAISS",
+                activities: data.raw_pois ? data.raw_pois.map((poi: any, idx: number) => ({
+                  time: `08:00 - 11:00 (Sesi ${idx + 1})`,
+                  poi_name: poi.name,
+                  category: poi.city || "Rekomendasi Sistem",
+                  description: poi.description,
+                  similarity_score: poi.score || 0.8500
+                })) : []
+              }
+            ]
+          });
+        } else {
+          setError("Format respons backend tidak valid.");
+        }
+      } catch (err: any) {
+        console.error("Fetch error:", err);
+        setError("Gagal terhubung ke server backend FastAPI.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchGeneratedItinerary();
+  }, []);
+
+  const handleSaveToDatabase = async () => {
+    try {
+      setSaving(true);
+      const response = await fetch("http://127.0.0.1:8000/api/v1/generator/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: "user_thesis_123",
+          itinerary_content: itineraryData
+        }),
+      });
+
+      if (!response.ok) throw new Error("Gagal menyimpan ke database.");
+      alert("Berhasil! Itinerary telah disimpan ke database PostgreSQL.");
+    } catch (err) {
+      console.error(err);
+      alert("Gagal menghubungi server untuk menyimpan data.");
+    } finally {
+      setSaving(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <p className="text-blue-600 font-medium animate-pulse">Menyusun Itinerary dengan AI RAG & FAISS...</p>
+      </div>
+    );
+  }
+
+  if (error || !itineraryData) {
+    return (
+      <div className="max-w-md mx-auto mt-12 p-6 bg-red-50 border border-red-200 text-red-600 rounded-xl text-center">
+        <p className="font-semibold">Terjadi Kesalahan</p>
+        <p className="text-sm mt-1">{error || "Data tidak ditemukan."}</p>
+        <Link href="/" className="mt-4 inline-block text-xs font-bold underline text-blue-600">
+          Kembali ke Beranda
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      {/* Tombol Kembali & Aksi */}
+      {/* Tombol Navigasi & Simpan */}
       <div className="flex items-center justify-between">
         <Link 
           href="/" 
@@ -79,65 +154,24 @@ export default function ItineraryResultPage() {
         </Link>
         <button
           onClick={handleSaveToDatabase}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 rounded-lg text-sm transition shadow-sm"
+          disabled={saving}
+          className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 rounded-lg text-sm transition shadow-sm disabled:bg-emerald-300 cursor-pointer"
         >
-          Simpan ke Database
+          {saving ? "Menyimpan..." : "Simpan ke Database"}
         </button>
       </div>
 
-      {/* Header Ringkasan Itinerary */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2.5 py-1 rounded-full uppercase">
-              {itineraryData.destination}
-            </span>
-            <h1 className="text-2xl font-black text-slate-800 mt-2">{itineraryData.title}</h1>
-            <p className="text-sm text-slate-500 mt-1">
-              Durasi: <span className="font-semibold text-slate-700">{itineraryData.duration_days} Hari</span> | 
-              Budget: <span className="font-semibold text-slate-700">{itineraryData.budget_level}</span>
-            </p>
-          </div>
-          <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 max-w-xs text-xs text-slate-600">
-            <span className="font-bold block text-slate-700 mb-1">Profil Implisit Pengguna:</span>
-            {itineraryData.user_profile_summary}
-          </div>
-        </div>
-      </div>
-
-      {/* Daftar Jadwal Harian (Day-by-Day Timeline) */}
-      <div className="space-y-6">
-        {itineraryData.days.map((day) => (
-          <div key={day.day_number} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-            <div className="border-b border-slate-100 pb-3 mb-4">
-              <span className="text-xs font-bold uppercase tracking-wider text-blue-600">Hari ke-{day.day_number}</span>
-              <h2 className="text-lg font-bold text-slate-800">{day.theme}</h2>
-            </div>
-
-            <div className="space-y-4">
-              {day.activities.map((act, index) => (
-                <div key={index} className="flex gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100 hover:border-slate-200 transition">
-                  <div className="font-mono text-xs font-bold text-slate-500 bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 h-fit">
-                    {act.time}
-                  </div>
-                  <div className="flex-grow">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-bold text-slate-800">{act.poi_name}</h3>
-                      <span className="text-[10px] font-medium bg-slate-200 text-slate-700 px-2 py-0.5 rounded">
-                        {act.category}
-                      </span>
-                    </div>
-                    <p className="text-sm text-slate-600 mt-1">{act.description}</p>
-                    <div className="text-[11px] text-slate-400 mt-2 font-mono">
-                      Skor Kedekatan Semantic Retrieval: {act.similarity_score}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
+      {/* Memanggil HistoryViewer Secara Dinamis */}
+      <HistoryViewer 
+        userId="user_thesis_123"
+        totalTrips={itineraryData.total_trips_analyzed || 4}
+        profileSummary={itineraryData.user_profile_summary}
+        destination={itineraryData.destination}
+        title={itineraryData.title}
+        durationDays={itineraryData.duration_days}
+        budgetLevel={itineraryData.budget_level}
+        days={itineraryData.days}
+      />
     </div>
   );
 }
